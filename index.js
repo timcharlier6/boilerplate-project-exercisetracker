@@ -36,7 +36,7 @@ app.post('/api/users', (req, res) => {
             console.error('Error writing user data', err)
             res.status(500).send('Error saving user')
         } else {
-            res.send(newUserData)
+            res.send(newUserData[0])
         }
     })
 })
