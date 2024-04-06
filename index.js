@@ -55,6 +55,72 @@ app.get('/api/users', (req, res) => {
     res.send(userData)
 })
 
+app.post('/api/users/:_id/exercises', (req, res) => {
+    const userId = req.params._id;
+    let { description, duration, date } = req.body;
+    duration = parseInt(duration);
+    date = date ? new Date(date) : new Date();
+    date = date.toDateString();
+
+    // Fetch the current user from the user data
+    const currentUser = userData.find(user => user._id === userId);
+
+    if (!currentUser) {
+        return res.status(404).json({ error: "User not found" });
+    }
+
+    if (!currentUser.hasOwnProperty('exercises')) {
+        currentUser.exercises = [];
+    }
+
+    // Add the exercise to the current user's data
+    const newExercise = { description, duration, date };
+    currentUser.exercises.push(newExercise);
+
+    // Prepare the response containing only the added exercise
+    const response = {
+        _id: currentUser._id,
+        username: currentUser.username,
+        description: newExercise.description,
+        duration: newExercise.duration,
+        date: newExercise.date
+    };
+
+    res.json(response);
+});
+
+app.get('/api/users/:_id/exercises', (req, res) => {
+    const userId = req.params._id;
+
+    // Find the user with the specified _id
+    const currentUser = userData.find(user => user._id === userId);
+
+    if (!currentUser) {
+        return res.status(404).json({ error: "User not found" });
+    }
+
+    // Count the number of exercises
+    const count = currentUser.exercises ? currentUser.exercises.length : 0;
+
+    // Prepare the log array
+    const log = currentUser.exercises ? currentUser.exercises.map((exercise, index) => ({
+        description: exercise.description,
+        duration: exercise.duration,
+        date: exercise.date
+    })) : [];
+
+    // Construct the response object
+    const response = {
+        _id: currentUser._id,
+        username: currentUser.username,
+        count: count,
+        log: log
+    };
+
+    res.json(response);
+});
+
+
 
 
 const listener = app.listen(process.env.PORT || 3000, () => {
