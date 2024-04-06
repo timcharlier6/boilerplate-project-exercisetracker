@@ -27,7 +27,7 @@ app.post('/api/users', (req, res) => {
         console.error('Error reading user data', error)
     }
 
-    userData.push({ _id: user_id, username: newUser })
+    userData.push({ _id: user_id, username: newUser, __v: 0 })
     const newUserData = userData.filter(user => user.username === newUser);
     console.log(userData)
 
