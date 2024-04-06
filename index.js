@@ -49,7 +49,7 @@ app.get('/api/users', (req, res) => {
     } catch (error) {
         console.error('Error reading user data', error)
     }
-
+    console.log(userData)
     res.send(userData)
 })
 
