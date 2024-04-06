@@ -27,7 +27,7 @@ app.post('/api/users', (req, res) => {
         console.error('Error reading user data', error)
     }
 
-    userData.push({ username: newUser, _id: user_id })
+    userData.push({ _id: user_id, username: newUser })
     const newUserData = userData.filter(user => user.username === newUser);
     console.log(userData)
 
@@ -36,7 +36,8 @@ app.post('/api/users', (req, res) => {
             console.error('Error writing user data', err)
             res.status(500).send('Error saving user')
         } else {
-            res.send(newUserData[0])
+            let response = {username: newUserData[0].username, _id: newUserData[0]._id}
+            res.send(response)
         }
     })
 })
