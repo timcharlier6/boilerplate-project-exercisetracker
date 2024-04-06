@@ -15,41 +15,42 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
 
+let userData = []
+
 app.post('/api/users', (req, res) => {
     const user_id = generateRandomHex(24)
     const newUser = req.body.username
-
-    let userData = []
-
+/*
     try {
         userData = JSON.parse(fs.readFileSync('users.json'))
     } catch (error) {
         console.error('Error reading user data', error)
     }
-
+*/
     userData.push({ _id: user_id, username: newUser, __v: 0 })
     const newUserData = userData.filter(user => user.username === newUser);
     console.log(userData)
-
+/*
     fs.writeFile('users.json', JSON.stringify(userData, null, 2), err => {
         if (err) {
             console.error('Error writing user data', err)
             res.status(500).send('Error saving user')
         } else {
+*/
             let response = {username: newUserData[0].username, _id: newUserData[0]._id}
             res.send(response)
-        }
-    })
+ //       }
+  //  })
 })
 
 app.get('/api/users', (req, res) => {
-    let userData = []
-
+/*
     try {
         userData = JSON.parse(fs.readFileSync('users.json'))
     } catch (error) {
         console.error('Error reading user data', error)
     }
+    */
     console.log(userData)
     res.send(userData)
 })
