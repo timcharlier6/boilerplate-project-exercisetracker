@@ -41,6 +41,18 @@ app.post('/api/users', (req, res) => {
     })
 })
 
+app.get('/api/users', (req, res) => {
+    let userData = []
+
+    try {
+        userData = JSON.parse(fs.readFileSync('users.json'))
+    } catch (error) {
+        console.error('Error reading user data', error)
+    }
+
+    res.send(userData)
+})
+
 
 
 const listener = app.listen(process.env.PORT || 3000, () => {
