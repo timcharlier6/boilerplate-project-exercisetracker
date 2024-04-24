@@ -134,6 +134,7 @@ app.get('/api/users/:_id/logs', (req, res) => {
     };
 
     res.json(response);
+    console.log(response)
 });
 
 
