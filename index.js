@@ -95,6 +95,7 @@ app.post('/api/users/:_id/exercises', (req, res) => {
 
 app.get('/api/users/:_id/logs', (req, res) => {
     const userId = req.params._id;
+    const { from, to, limit } = req.query;
 
     // Find the user with the specified _id
     const currentUser = userData.find(user => user._id === userId);
@@ -103,26 +104,38 @@ app.get('/api/users/:_id/logs', (req, res) => {
         return res.status(404).json({ error: "User not found" });
     }
 
-    // Count the number of exercises
-    const count = currentUser.exercises ? currentUser.exercises.length : 0;
+    // Filter exercises based on from and to dates
+    let filteredExercises = currentUser.exercises || [];
+    if (from) {
+        filteredExercises = filteredExercises.filter(exercise => new Date(exercise.date) >= new Date(from));
+    }
+    if (to) {
+        filteredExercises = filteredExercises.filter(exercise => new Date(exercise.date) <= new Date(to));
+    }
+
+    // Limit the number of exercises if limit is provided
+    if (limit) {
+        filteredExercises = filteredExercises.slice(0, limit);
+    }
 
     // Prepare the log array
-    const log = currentUser.exercises ? currentUser.exercises.map((exercise, index) => ({
+    const log = filteredExercises.map(exercise => ({
         description: exercise.description,
         duration: exercise.duration,
         date: exercise.date
-    })) : [];
+    }));
 
     // Construct the response object
     const response = {
         _id: currentUser._id,
         username: currentUser.username,
-        count: count,
+        count: log.length,
         log: log
     };
 
     res.json(response);
 });
+
 
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log('Your app is listening on port ' + listener.address().port)
