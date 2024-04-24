@@ -27,7 +27,7 @@ app.post('/api/users', (req, res) => {
         console.error('Error reading user data', error)
     }
 */
-    userData.push({ _id: user_id, username: newUser, __v: 0 })
+    userData.push({ _id: user_id, username: newUser })
     const newUserData = userData.filter(user => user.username === newUser);
     console.log(userData)
 /*
@@ -51,8 +51,12 @@ app.get('/api/users', (req, res) => {
         console.error('Error reading user data', error)
     }
     */
-    console.log(userData)
-    res.send(userData)
+    let usersList = userData.map(user =>({
+        _id: user._id,
+        username: user.username
+    }) )
+    console.log(usersList)
+    res.send(usersList)
 })
 
 app.post('/api/users/:_id/exercises', (req, res) => {
@@ -89,7 +93,7 @@ app.post('/api/users/:_id/exercises', (req, res) => {
     res.json(response);
 });
 
-app.get('/api/users/:_id/exercises', (req, res) => {
+app.get('/api/users/:_id/logs', (req, res) => {
     const userId = req.params._id;
 
     // Find the user with the specified _id
@@ -119,9 +123,6 @@ app.get('/api/users/:_id/exercises', (req, res) => {
 
     res.json(response);
 });
-
-
-
 
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log('Your app is listening on port ' + listener.address().port)
