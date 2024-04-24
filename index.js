@@ -1,140 +1,280 @@
-const express = require('express')
-const app = express()
-const cors = require('cors')
-const bodyParser = require('body-parser')
-const fs = require('fs')
-const generateRandomHex = require('./randomId.js')
-require('dotenv').config()
+const express = require('express');
+const app = express();
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const crypto = require('crypto');
+require('dotenv').config();
 
-app.use(cors())
-app.use(express.static('public'))
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({extended: true }))
 
+app.use(cors());
+app.use(express.static('public'));
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
 
-let userData = []
+// app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-app.post('/api/users', (req, res) => {
-    const user_id = generateRandomHex(24)
-    const newUser = req.body.username
-/*
-    try {
-        userData = JSON.parse(fs.readFileSync('users.json'))
-    } catch (error) {
-        console.error('Error reading user data', error)
-    }
-*/
-    userData.push({ _id: user_id, username: newUser })
-    const newUserData = userData.filter(user => user.username === newUser);
-    console.log(userData)
-/*
-    fs.writeFile('users.json', JSON.stringify(userData, null, 2), err => {
-        if (err) {
-            console.error('Error writing user data', err)
-            res.status(500).send('Error saving user')
-        } else {
-*/
-            let response = {username: newUserData[0].username, _id: newUserData[0]._id}
-            res.send(response)
- //       }
-  //  })
-})
+let users = [];
+let exercises = [];
 
 app.get('/api/users', (req, res) => {
-/*
-    try {
-        userData = JSON.parse(fs.readFileSync('users.json'))
-    } catch (error) {
-        console.error('Error reading user data', error)
-    }
-    */
-    let usersList = userData.map(user =>({
-        _id: user._id,
-        username: user.username
-    }) )
-    console.log(usersList)
-    res.send(usersList)
-})
-
-app.post('/api/users/:_id/exercises', (req, res) => {
-    const userId = req.params._id;
-    let { description, duration, date } = req.body;
-    duration = parseInt(duration);
-    date = date ? new Date(date) : new Date();
-    date = date.toDateString();
-
-    // Fetch the current user from the user data
-    const currentUser = userData.find(user => user._id === userId);
-
-    if (!currentUser) {
-        return res.status(404).json({ error: "User not found" });
-    }
-
-    if (!currentUser.hasOwnProperty('exercises')) {
-        currentUser.exercises = [];
-    }
-
-    // Add the exercise to the current user's data
-    const newExercise = { description, duration, date };
-    currentUser.exercises.push(newExercise);
-
-    // Prepare the response containing only the added exercise
-    const response = {
-        _id: currentUser._id,
-        username: currentUser.username,
-        description: newExercise.description,
-        duration: newExercise.duration,
-        date: newExercise.date
-    };
-
-    res.json(response);
+  res.json(users);
 });
 
-app.get('/api/users/:_id/logs', (req, res) => {
-    const userId = req.params._id;
-    const { from, to, limit } = req.query;
 
-    // Find the user with the specified _id
-    const currentUser = userData.find(user => user._id === userId);
+app.post('/api/users', (req, res) => {
 
-    if (!currentUser) {
-        return res.status(404).json({ error: "User not found" });
+  const username = req.body.username;
+
+  if (username !== "") {
+
+    const id = crypto.createHash('sha1').update(username, 'utf8').digest('hex');
+
+    const newUserObj = {"_id": id, "username": username };
+
+    console.log("New user: " + username + " and id: " + id);
+
+    users.push(newUserObj);
+
+    res.json(newUserObj);
+    return;
+
+  }
+});
+
+const findUserById = function(id) {
+
+  for (var i=0; i<users.length; i++) {
+    if (users[i]["_id"] == id) {
+      return users[i];
+    }
+  }
+
+  return null;
+
+};
+
+app.get('/api/users/exercises', (req, res) => {
+    res.sendStatus(404);
+});
+
+app.post('/api/users/:_id/exercises', (req, res) => {
+
+  const id = req.params["_id"];
+  const description = req.body["description"];
+  const durationStr = req.body["duration"];
+  const duration = parseInt(durationStr);
+  const dateStr = req.body["date"];
+
+  // if empty -> 404 not found
+  if (id == "") {
+    res.sendStatus(404);
+    console.log("New exercise failed: no id given\n");
+    return;
+  }
+
+  const user = findUserById(id);
+
+  if (user == null) {
+    res.sendStatus(404);
+    console.log("New exercise failed: couldn't find user\n");
+    return;
+  }
+
+  const username = user["username"];
+
+  if (description == "") {
+    res.status(400).send("Path `description` is required.");
+    console.log("New exercise failed: description is required\n");
+    return;
+  }
+
+  if (durationStr == "") {
+    res.status(400).send("Path `duration` is required.");
+    console.log("New exercise failed: duration is required\n");
+    return;
+  }
+
+  if (isNaN(duration)) {
+    res.status(400).send("Path `duration` is not a number.");
+    console.log("New exercise failed: duration is not a number\n");
+    return;
+  }
+
+  let date = new Date(dateStr);
+
+  if (dateStr == "" || dateStr == undefined) {
+    date = new Date();
+  }
+
+  if (date == "Invalid Date") {
+    res.status(400).send("Path `date` is not a valid date.");
+    console.log("New exercise failed: date is not valid " + dateStr + "\n");
+    return;
+
+  }
+
+  let exercise = JSON.parse(JSON.stringify(user));
+
+  exercise["date"] = date.toDateString();
+  exercise["duration"] = duration;
+  exercise["description"] = description;
+
+
+  console.log("New exercise for id: " + id);
+  exercises.push(exercise);
+
+  console.log(exercise);
+  console.log("\n");
+
+  res.json(exercise);
+  return;
+
+});
+
+const findExercisesById = function(id, from, to, limit) {
+
+  let findings = [];
+
+  for (var i=0; i < exercises.length; i++) {
+
+    if (exercises[i]["_id"] == id) {
+
+      const dateStr = exercises[i]["date"];
+      const date = new Date(dateStr);
+
+      if (from != null) {
+        if (date < from) {
+          continue;
+        }
+      }
+
+      if (to != null) {
+        if (date > to) {
+          continue;
+        }
+      }
+
+      if (limit != null && findings.length >= limit) {
+        break;
+      }
+
+      const finding = {
+        "description": exercises[i]["description"],
+        "duration": parseInt(exercises[i]["duration"]),
+        "date": dateStr
+      };
+
+      // console.log(finding);
+
+      findings.push(finding);
     }
 
-    // Filter exercises based on from and to dates
-    let filteredExercises = currentUser.exercises || [];
-    if (from) {
-        filteredExercises = filteredExercises.filter(exercise => new Date(exercise.date) >= new Date(from));
+  }
+
+  return findings;
+
+};
+
+app.get('/api/users/:id/logs', (req, res) => {
+
+  const id = req.params["id"];
+  let logString = "Log request for: " + id + "/logs";
+  let firstQuery = true;
+
+  // handle from query
+  const fromStr = req.query["from"];
+  let from = null;
+
+  if (fromStr != undefined) {
+    from = new Date(fromStr);
+    if (from == "Invalid Date") {
+      res.status(400).send("Query `from` is not a valid date.");
+      console.log("Log request failed: " + id + " from: " + fromStr);
+      return;
     }
-    if (to) {
-        filteredExercises = filteredExercises.filter(exercise => new Date(exercise.date) <= new Date(to));
+
+    if (firstQuery == true) {
+      firstQuery = false;
+      logString += "?";
     }
 
-    // Limit the number of exercises if limit is provided
-    if (limit) {
-        filteredExercises = filteredExercises.slice(0, limit);
+    logString += "from="+fromStr+"&";
+  }
+
+  // handle to query
+  const toStr = req.query["to"];
+  let to = null;
+
+  if (toStr != undefined) {
+    to = new Date(toStr);
+
+    if (to == "Invalid Date") {
+      res.status(400).send("Query `to` is not a valid date.");
+      console.log("Log request failed: " + id + " to: " + toStr);
+      return;
     }
 
-    // Prepare the log array
-    const log = filteredExercises.map(exercise => ({
-        description: exercise.description,
-        duration: exercise.duration,
-        date: exercise.date
-    }));
+    if (firstQuery == true) {
+      firstQuery = false;
+      logString += "?";
+    }
 
-    // Construct the response object
-    const response = {
-        _id: currentUser._id,
-        username: currentUser.username,
-        count: log.length,
-        log: log
-    };
+    logString += "to="+toStr+"&";
+  }
 
-    res.json(response);
-    console.log(response)
+  // handle limit query
+  const limitStr = req.query["limit"];
+  let limit = null;
+
+  if (limitStr != undefined) {
+    limit = parseInt(limitStr);
+
+    if (isNaN(limit)) {
+      res.status(400).send("Query `limit` is not number.");
+      console.log("Log request failed: " + id + " limit: " + limitStr);
+      return;
+    }
+
+    if (firstQuery == true) {
+      firstQuery = false;
+      logString += "?";
+    }
+
+    logString += "limit="+limit+"&";
+  }
+
+  // remove last &
+  logString = logString.substr(0, logString.length - 1);
+
+  console.log(logString);
+
+  // if empty -> 404 not found
+  if (id == "") {
+    res.sendStatus(404);
+    return;
+  }
+
+  const user = findUserById(id);
+
+  if (user == null) {
+    res.sendStatus(404);
+    return;
+  }
+
+  const findings = findExercisesById(id, from, to, limit);
+
+  let logs = {
+    "username": user["username"],
+    "count": findings.length,
+    "_id": id,
+    "log": findings
+  };
+
+  res.json(logs);
+  return;
+
 });
 
 
